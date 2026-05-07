@@ -10,6 +10,7 @@
 	</header>
 
 	<div class="actions">
+		<a href="/calendar" class="btn-cal">Calendar</a>
 		<a href="/add" class="btn-add">+ Add to-do</a>
 	</div>
 
@@ -65,7 +66,23 @@
 	.actions {
 		display: flex;
 		justify-content: flex-end;
+		gap: 0.5rem;
 		margin-bottom: 1rem;
+	}
+
+	.btn-cal {
+		padding: 0.5rem 1rem;
+		background: #3a4560;
+		color: #90a0c0;
+		border-radius: 0.5rem;
+		text-decoration: none;
+		font-size: 0.9rem;
+		font-weight: 600;
+		transition: background 0.15s;
+	}
+
+	.btn-cal:hover {
+		background: #424f6e;
 	}
 
 	.btn-add {
