@@ -15,9 +15,15 @@
 
 	<ul class="todo-list">
 		{#each data.todos as todo}
-			<li class="todo-item" class:done={todo.done}>
-				<span class="check">{todo.done ? '✓' : ''}</span>
-				<span class="name">{todo.name}</span>
+			<li>
+				<form method="POST" action="?/toggle">
+					<input type="hidden" name="id" value={todo.id} />
+					<input type="hidden" name="done" value={todo.done ? '1' : '0'} />
+					<button type="submit" class="todo-item" class:done={todo.done}>
+						<span class="check">{todo.done ? '✓' : ''}</span>
+						<span class="name">{todo.name}</span>
+					</button>
+				</form>
 			</li>
 		{:else}
 			<li class="empty">No to-dos yet.</li>
@@ -93,6 +99,11 @@
 		border-radius: 0.5rem;
 		cursor: pointer;
 		transition: background 0.15s;
+		width: 100%;
+		border: none;
+		color: inherit;
+		font-family: inherit;
+		text-align: left;
 	}
 
 	.todo-item:hover {

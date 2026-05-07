@@ -1,5 +1,21 @@
 import { getDb } from '$lib/server/db';
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
+
+export const actions: Actions = {
+	toggle: async ({ request }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
+		const done = data.get('done') === '1';
+		const today = new Date().toISOString().slice(0, 10);
+		const db = getDb();
+
+		if (done) {
+			db.prepare('DELETE FROM habits WHERE to_do_id = ? AND date = ?').run(id, today);
+		} else {
+			db.prepare('INSERT INTO habits (to_do_id, date) VALUES (?, ?)').run(id, today);
+		}
+	}
+};
 
 export const load: PageServerLoad = () => {
 	const db = getDb();
