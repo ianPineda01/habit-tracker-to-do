@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
+from datetime import date
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from database import create_db, get_session
-from models import ToDo
+from models import ToDo, Habit
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,3 +44,23 @@ def delete_todo(name: str, session: Session = Depends(get_session)):
     session.delete(todo)
     session.commit()
     return {"deleted": name}
+
+@app.post("/habits", response_model=Habit)
+def mark_complete(habit: Habit, session: Session = Depends(get_session)):
+    session.add(habit)
+    session.commit()
+    session.refresh(habit)
+    return habit
+
+@app.get("/habits/{day}", response_model=list[Habit])
+def get_completions(day: date, session: Session = Depends(get_session)):
+    return session.exec(select(Habit).where(Habit.completion_date == day)).all()
+
+@app.delete("/habits/{habit_id}")
+def unmark_complete(habit_id: int, session: Session = Depends(get_session)):
+    habit = session.get(Habit, habit_id)
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+    session.delete(habit)
+    session.commit()
+    return {"deleted": habit_id}
