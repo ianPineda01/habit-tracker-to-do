@@ -7,6 +7,7 @@
   let todos: string[] = [];
   let newName = '';
   let error = '';
+  let showAdd = false;
 
   async function fetchTodos() {
     const res = await fetch(`${API}/todos`);
@@ -25,6 +26,7 @@
     if (res.ok) {
       newName = '';
       error = '';
+      showAdd = false;
       await fetchTodos();
     } else {
       const data = await res.json();
@@ -41,35 +43,61 @@
     if (e.key === 'Enter') addTodo();
   }
 
+  function openAdd() {
+    newName = '';
+    error = '';
+    showAdd = true;
+  }
+
   onMount(fetchTodos);
 </script>
 
 <main>
-  <h1>To-dos</h1>
+  {#if showAdd}
+    <div class="page-header">
+      <button class="back" on:click={() => (showAdd = false)}>← Back</button>
+      <h1>Edit to-dos</h1>
+    </div>
 
-  <div class="input-row">
-    <input
-      bind:value={newName}
-      on:keydown={handleKey}
-      placeholder="New to-do..."
-    />
-    <button on:click={addTodo}>Add</button>
-  </div>
+    <ul>
+      {#each todos as todo}
+        <li>
+          <span>{todo}</span>
+          <button class="delete" on:click={() => deleteTodo(todo)}>Delete</button>
+        </li>
+      {:else}
+        <li class="empty">No to-dos yet.</li>
+      {/each}
+    </ul>
 
-  {#if error}
-    <p class="error">{error}</p>
+    <div class="input-row">
+      <input
+        bind:value={newName}
+        on:keydown={handleKey}
+        placeholder="New to-do..."
+        autofocus
+      />
+      <button on:click={addTodo}>Add</button>
+    </div>
+
+    {#if error}
+      <p class="error">{error}</p>
+    {/if}
+
+  {:else}
+    <div class="page-header">
+      <h1>To-dos</h1>
+      <button on:click={openAdd}>Edit to-dos</button>
+    </div>
+
+    <ul>
+      {#each todos as todo}
+        <li><span>{todo}</span></li>
+      {:else}
+        <li class="empty">No to-dos yet.</li>
+      {/each}
+    </ul>
   {/if}
-
-  <ul>
-    {#each todos as todo}
-      <li>
-        <span>{todo}</span>
-        <button class="delete" on:click={() => deleteTodo(todo)}>Delete</button>
-      </li>
-    {:else}
-      <li class="empty">No to-dos yet.</li>
-    {/each}
-  </ul>
 </main>
 
 <style>
@@ -80,15 +108,24 @@
     padding: 0 16px;
   }
 
-  h1 {
-    font-size: 2rem;
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     margin-bottom: 24px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    margin: 0;
+    white-space: nowrap;
   }
 
   .input-row {
     display: flex;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-top: 16px;
   }
 
   input {
@@ -113,6 +150,18 @@
     background: #4f46e5;
   }
 
+  button.back {
+    background: none;
+    color: #6366f1;
+    padding: 0;
+    font-size: 1rem;
+  }
+
+  button.back:hover {
+    background: none;
+    color: #4f46e5;
+  }
+
   .error {
     color: #dc2626;
     font-size: 0.9rem;
@@ -122,7 +171,7 @@
   ul {
     list-style: none;
     padding: 0;
-    margin-top: 16px;
+    margin: 0;
   }
 
   li {
