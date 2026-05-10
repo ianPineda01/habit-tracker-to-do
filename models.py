@@ -13,4 +13,4 @@ class Habit(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     completion_date: date
-    name: str = Field(foreign_key="to_do.name")
+    name: str = Field(foreign_key="to_do.name", ondelete="CASCADE")
