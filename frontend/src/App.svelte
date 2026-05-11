@@ -5,9 +5,16 @@
   const API = import.meta.env.DEV ? 'http://localhost:8000' : '';
 
   let todos: string[] = [];
+  let done = new Set<string>();
   let newName = '';
   let error = '';
   let showAdd = false;
+
+  function toggleDone(name: string) {
+    if (done.has(name)) done.delete(name);
+    else done.add(name);
+    done = done; // trigger reactivity
+  }
 
   async function fetchTodos() {
     const res = await fetch(`${API}/todos`);
@@ -75,7 +82,6 @@
         bind:value={newName}
         on:keydown={handleKey}
         placeholder="New to-do..."
-        autofocus
       />
       <button on:click={addTodo}>Add</button>
     </div>
@@ -92,7 +98,11 @@
 
     <ul>
       {#each todos as todo}
-        <li><span>{todo}</span></li>
+        <li>
+          <button class="todo-toggle" class:done={done.has(todo)} on:click={() => toggleDone(todo)}>
+            {todo}
+          </button>
+        </li>
       {:else}
         <li class="empty">No to-dos yet.</li>
       {/each}
@@ -197,5 +207,24 @@
 
   button.delete:hover {
     background: #dc2626;
+  }
+
+  button.todo-toggle {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: 1rem;
+    text-align: left;
+    width: 100%;
+  }
+
+  button.todo-toggle:hover {
+    background: none;
+    color: inherit;
+  }
+
+  button.todo-toggle.done {
+    text-decoration: line-through;
+    color: #9ca3af;
   }
 </style>
