@@ -1,10 +1,15 @@
 from contextlib import asynccontextmanager
 from datetime import date
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from database import create_db, get_session
 from models import ToDo, Habit, HabitCreate
+
+STATIC_DIR = Path(__file__).parent / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,17 +18,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# DEVONLY — in production the Svelte build is served statically from FastAPI
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if not STATIC_DIR.exists():
+    # Dev mode — allow Vite dev server on 5173
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello, World!"}
+    return FileResponse(STATIC_DIR / "index.html")
 
 @app.post("/todos", response_model=ToDo)
 def create_todo(todo: ToDo, session: Session = Depends(get_session)):
@@ -69,3 +75,6 @@ def unmark_complete(habit_id: int, session: Session = Depends(get_session)):
 @app.get("/todos/{name}/habits", response_model=list[Habit])
 def get_habit_history(name: str, session: Session = Depends(get_session)):
     return session.exec(select(Habit).where(Habit.name == name)).all()
+
+if STATIC_DIR.exists():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
