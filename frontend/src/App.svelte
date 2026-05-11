@@ -5,21 +5,43 @@
   const API = import.meta.env.DEV ? 'http://localhost:8000' : '';
 
   let todos: string[] = [];
-  let done = new Set<string>();
+  let done = new Map<string, number>(); // name → habit id
   let newName = '';
   let error = '';
   let showAdd = false;
 
-  function toggleDone(name: string) {
-    if (done.has(name)) done.delete(name);
-    else done.add(name);
-    done = done; // trigger reactivity
-  }
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   async function fetchTodos() {
     const res = await fetch(`${API}/todos`);
     const data: { name: string }[] = await res.json();
     todos = data.map(t => t.name);
+  }
+
+  async function fetchDone() {
+    const res = await fetch(`${API}/habits/${todayIso}`);
+    const data: { id: number; name: string }[] = await res.json();
+    done = new Map(data.map(h => [h.name, h.id]));
+  }
+
+  async function toggleDone(name: string) {
+    if (done.has(name)) {
+      const id = done.get(name)!;
+      done.delete(name);
+      done = done;
+      await fetch(`${API}/habits/${id}`, { method: 'DELETE' });
+    } else {
+      done.set(name, -1); // optimistic
+      done = done;
+      const res = await fetch(`${API}/habits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, completion_date: todayIso }),
+      });
+      const habit: { id: number; name: string } = await res.json();
+      done.set(name, habit.id);
+      done = done;
+    }
   }
 
   async function addTodo() {
@@ -58,7 +80,7 @@
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-  onMount(fetchTodos);
+  onMount(() => Promise.all([fetchTodos(), fetchDone()]));
 </script>
 
 <main>

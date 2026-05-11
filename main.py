@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from database import create_db, get_session
-from models import ToDo, Habit
+from models import ToDo, Habit, HabitCreate
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -46,7 +46,8 @@ def delete_todo(name: str, session: Session = Depends(get_session)):
     return {"deleted": name}
 
 @app.post("/habits", response_model=Habit)
-def mark_complete(habit: Habit, session: Session = Depends(get_session)):
+def mark_complete(habit_in: HabitCreate, session: Session = Depends(get_session)):
+    habit = Habit(name=habit_in.name, completion_date=habit_in.completion_date)
     session.add(habit)
     session.commit()
     session.refresh(habit)

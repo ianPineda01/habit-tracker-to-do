@@ -7,6 +7,9 @@ class ToDo(SQLModel, table=True):
 
     name: str = Field(primary_key=True)
 
+class HabitCreate(SQLModel):
+    completion_date: date
+    name: str
 
 class Habit(SQLModel, table=True):
     __tablename__ = "habit_table" # type: ignore[assignment]
