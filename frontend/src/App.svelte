@@ -56,6 +56,8 @@
     showAdd = true;
   }
 
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
   onMount(fetchTodos);
 </script>
 
@@ -91,6 +93,7 @@
     {/if}
 
   {:else}
+    <h1 class="date">{today}</h1>
     <div class="page-header">
       <h1>To-dos</h1>
       <button on:click={openAdd}>Edit to-dos</button>
@@ -130,6 +133,14 @@
     font-size: 1.75rem;
     margin: 0;
     white-space: nowrap;
+  }
+
+  h1.date {
+    font-size: 1.1rem;
+    color: #6b7280;
+    font-weight: 400;
+    margin-bottom: 8px;
+    white-space: normal;
   }
 
   .input-row {
