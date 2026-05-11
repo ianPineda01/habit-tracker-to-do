@@ -65,3 +65,7 @@ def unmark_complete(habit_id: int, session: Session = Depends(get_session)):
     session.delete(habit)
     session.commit()
     return {"deleted": habit_id}
+
+@app.get("/todos/{name}/habits", response_model=list[Habit])
+def get_habit_history(name: str, session: Session = Depends(get_session)):
+    return session.exec(select(Habit).where(Habit.name == name)).all()

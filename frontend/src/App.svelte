@@ -8,7 +8,12 @@
   let done = new Map<string, number>(); // name → habit id
   let newName = '';
   let error = '';
-  let showAdd = false;
+  let view: 'main' | 'edit' | 'calendar' = 'main';
+
+  // calendar state
+  let calendarHabit = '';
+  let calendarDates = new Set<string>();
+  let calendarMonth = new Date();
 
   const todayIso = new Date().toISOString().slice(0, 10);
 
@@ -55,7 +60,7 @@
     if (res.ok) {
       newName = '';
       error = '';
-      showAdd = false;
+      view = 'main';
       await fetchTodos();
     } else {
       const data = await res.json();
@@ -75,8 +80,55 @@
   function openAdd() {
     newName = '';
     error = '';
-    showAdd = true;
+    view = 'edit';
   }
+
+  async function openCalendar(name: string) {
+    calendarHabit = name;
+    calendarDates = new Set();
+    calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    view = 'calendar';
+    const res = await fetch(`${API}/todos/${encodeURIComponent(name)}/habits`);
+    const data: { completion_date: string }[] = await res.json();
+    calendarDates = new Set(data.map(h => h.completion_date));
+  }
+
+  function prevMonth() {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+  }
+
+  function nextMonth() {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+  }
+
+  type CalDay = { n: number; thisMonth: boolean; completed: boolean; iso: string };
+
+  function buildCalendarDays(month: Date, dates: Set<string>): CalDay[] {
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const firstDow = new Date(year, m, 1).getDay();
+    const lastDate = new Date(year, m + 1, 0).getDate();
+    const days: CalDay[] = [];
+
+    for (let i = 0; i < firstDow; i++) {
+      const dt = new Date(year, m, 1 - (firstDow - i));
+      days.push({ n: dt.getDate(), thisMonth: false, completed: false, iso: dt.toISOString().slice(0, 10) });
+    }
+    for (let d = 1; d <= lastDate; d++) {
+      const dt = new Date(year, m, d);
+      const iso = dt.toISOString().slice(0, 10);
+      days.push({ n: d, thisMonth: true, completed: dates.has(iso), iso });
+    }
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const dt = new Date(year, m + 1, i);
+      days.push({ n: i, thisMonth: false, completed: false, iso: dt.toISOString().slice(0, 10) });
+    }
+    return days;
+  }
+
+  $: calendarDays = buildCalendarDays(calendarMonth, calendarDates);
+  $: monthLabel = calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -84,9 +136,9 @@
 </script>
 
 <main>
-  {#if showAdd}
+  {#if view === 'edit'}
     <div class="page-header">
-      <button class="back" on:click={() => (showAdd = false)}>← Back</button>
+      <button class="back" on:click={() => (view = 'main')}>← Back</button>
       <h1>Edit to-dos</h1>
     </div>
 
@@ -114,6 +166,32 @@
       <p class="error">{error}</p>
     {/if}
 
+  {:else if view === 'calendar'}
+    <div class="page-header">
+      <button class="back" on:click={() => (view = 'main')}>← Back</button>
+      <h1>{calendarHabit}</h1>
+    </div>
+
+    <div class="cal-nav">
+      <button class="nav-btn" on:click={prevMonth}>‹</button>
+      <span class="cal-month-label">{monthLabel}</span>
+      <button class="nav-btn" on:click={nextMonth}>›</button>
+    </div>
+
+    <div class="cal-grid">
+      {#each ['Su','Mo','Tu','We','Th','Fr','Sa'] as d}
+        <div class="cal-header">{d}</div>
+      {/each}
+      {#each calendarDays as day}
+        <div
+          class="cal-day"
+          class:other-month={!day.thisMonth}
+          class:completed={day.completed}
+          class:today={day.iso === todayIso}
+        >{day.n}</div>
+      {/each}
+    </div>
+
   {:else}
     <h1 class="date">{today}</h1>
     <div class="page-header">
@@ -127,6 +205,7 @@
           <button class="todo-toggle" class:done={done.has(todo)} on:click={() => toggleDone(todo)}>
             {todo}
           </button>
+          <button class="chevron" on:click={() => openCalendar(todo)}>›</button>
         </li>
       {:else}
         <li class="empty">No to-dos yet.</li>
@@ -248,7 +327,7 @@
     padding: 0;
     font-size: 1rem;
     text-align: left;
-    width: 100%;
+    flex: 1;
   }
 
   button.todo-toggle:hover {
@@ -259,5 +338,81 @@
   button.todo-toggle.done {
     text-decoration: line-through;
     color: #9ca3af;
+  }
+
+  button.chevron {
+    background: none;
+    color: #9ca3af;
+    padding: 0 0 0 12px;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  button.chevron:hover {
+    background: none;
+    color: #6366f1;
+  }
+
+  /* calendar */
+
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .cal-month-label {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  button.nav-btn {
+    background: none;
+    color: #6366f1;
+    padding: 4px 10px;
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  button.nav-btn:hover {
+    background: none;
+    color: #4f46e5;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .cal-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    padding: 4px 0;
+  }
+
+  .cal-day {
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text-h, inherit);
+  }
+
+  .cal-day.other-month {
+    color: #d1d5db;
+  }
+
+  .cal-day.completed {
+    background: #6366f1;
+    color: #fff;
+  }
+
+  .cal-day.today:not(.completed) {
+    border: 1.5px solid #6366f1;
+    color: #6366f1;
   }
 </style>
