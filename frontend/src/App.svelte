@@ -12,6 +12,7 @@
 
   // calendar state
   let calendarHabit = '';
+  let calendarIndex = 0;
   let calendarDates = new Set<string>();
   let calendarMonth = new Date();
 
@@ -83,14 +84,29 @@
     view = 'edit';
   }
 
-  async function openCalendar(name: string) {
+  async function loadCalendarData(name: string) {
     calendarHabit = name;
     calendarDates = new Set();
-    calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    view = 'calendar';
     const res = await fetch(`${API}/todos/${encodeURIComponent(name)}/habits`);
     const data: { completion_date: string }[] = await res.json();
     calendarDates = new Set(data.map(h => h.completion_date));
+  }
+
+  async function openCalendar(name: string) {
+    calendarIndex = todos.indexOf(name);
+    calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    view = 'calendar';
+    await loadCalendarData(name);
+  }
+
+  function prevHabit() {
+    calendarIndex = (calendarIndex - 1 + todos.length) % todos.length;
+    loadCalendarData(todos[calendarIndex]);
+  }
+
+  function nextHabit() {
+    calendarIndex = (calendarIndex + 1) % todos.length;
+    loadCalendarData(todos[calendarIndex]);
   }
 
   function prevMonth() {
@@ -169,7 +185,11 @@
   {:else if view === 'calendar'}
     <div class="page-header">
       <button class="back" on:click={() => (view = 'main')}>← Back</button>
-      <h1>{calendarHabit}</h1>
+      <div class="habit-switcher">
+        <button class="nav-btn" on:click={prevHabit} disabled={todos.length <= 1}>‹</button>
+        <h1>{calendarHabit}</h1>
+        <button class="nav-btn" on:click={nextHabit} disabled={todos.length <= 1}>›</button>
+      </div>
     </div>
 
     <div class="cal-nav">
@@ -351,6 +371,12 @@
   button.chevron:hover {
     background: none;
     color: #6366f1;
+  }
+
+  .habit-switcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   /* calendar */
