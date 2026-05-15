@@ -16,7 +16,14 @@
   let calendarDates = new Set<string>();
   let calendarMonth = new Date();
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  function toLocalIso(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  const todayIso = toLocalIso(new Date());
 
   async function fetchTodos() {
     const res = await fetch(`${API}/todos`);
@@ -128,17 +135,17 @@
 
     for (let i = 0; i < firstDow; i++) {
       const dt = new Date(year, m, 1 - (firstDow - i));
-      days.push({ n: dt.getDate(), thisMonth: false, completed: false, iso: dt.toISOString().slice(0, 10) });
+      days.push({ n: dt.getDate(), thisMonth: false, completed: false, iso: toLocalIso(dt) });
     }
     for (let d = 1; d <= lastDate; d++) {
       const dt = new Date(year, m, d);
-      const iso = dt.toISOString().slice(0, 10);
+      const iso = toLocalIso(dt);
       days.push({ n: d, thisMonth: true, completed: dates.has(iso), iso });
     }
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const dt = new Date(year, m + 1, i);
-      days.push({ n: i, thisMonth: false, completed: false, iso: dt.toISOString().slice(0, 10) });
+      days.push({ n: i, thisMonth: false, completed: false, iso: toLocalIso(dt) });
     }
     return days;
   }
